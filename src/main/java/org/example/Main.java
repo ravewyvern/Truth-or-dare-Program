@@ -21,6 +21,7 @@ public class Main {
         String[] usedTruths = new String[1];
         String[] usedDares = new String[1];
         int totalTruths = 0, totalDares = 0;
+        String rating = "pg13", getQuestions = "local";
 
         System.out.println("Welcome to Truth or Dare!");
         System.out.print("To get started How many players are there?: ");
@@ -39,24 +40,24 @@ public class Main {
             while (mainLoop < players) {
                 System.out.println();
                 System.out.println("It is player " + (mainLoop + 1) + "'s turn.");
-                System.out.print("Select a Truth (1), Dare (2), Stats (3), or Exit (4) question: ");
+                System.out.print("Select a Truth (1), Dare (2), Stats (3), Settings (4), or Exit (5) question: ");
                 int choice = input.nextInt();
 
                 if (choice == 1) {
-                    if (getCSVLength("src/main/java/org/example/truthes.csv") <= totalTruths) {
+                    if (getCSVLength("src/main/java/org/example/truths.csv") <= totalTruths) {
                         System.out.println("You have used all the truths.");
                         if (yesNoPrompt("Would you like to reset the truths")) {
                             usedTruths = new String[1];
                         }
                         continue;
                     }
-                    String randomTruth = getRandomEntry("src/main/java/org/example/truthes.csv");
+                    String randomTruth = getRandomEntry("src/main/java/org/example/truths.csv");
 
                     usedTruths = resizeArray(usedTruths, 1);
                     usedTruths[usedTruths.length - 2] = "placeholder";
 
                     while (arrayItemChecker(usedTruths, randomTruth)) {
-                        randomTruth = getRandomEntry("src/main/java/org/example/truthes.csv");
+                        randomTruth = getRandomEntry("src/main/java/org/example/truths.csv");
                     }
                     boolean continueLoopforTruth = true;
 
@@ -140,7 +141,7 @@ public class Main {
                 else if (choice == 3) {
                     System.out.println("Global Stats:");
                     System.out.println("You have used " + totalTruths + " truths.");
-                    System.out.println("There are a total of " + getCSVLength("src/main/java/org/example/truthes.csv") + " truths.");
+                    System.out.println("There are a total of " + getCSVLength("src/main/java/org/example/truths.csv") + " truths.");
                     System.out.println("You have used " + totalDares + " dares.");
                     System.out.println("There are a total of " + getCSVLength("src/main/java/org/example/dares.csv") + " dares.");
                     for (int i = 0; i < players; i++) {
@@ -152,6 +153,77 @@ public class Main {
                         System.out.println("Has a Favorite T/D of " + playerStats[i].getFavoriteTruthOrDare());
                     }
 
+                } else if (choice == 4) {
+                    System.out.println("Settings:");
+                    System.out.println("1. Change the number of players.");
+                    System.out.println("2. Change the number of skips.");
+                    System.out.println("3. Reset the used truths.");
+                    System.out.println("4. Reset the used dares.");
+                    System.out.println("5. Change rating for truths and dares.");
+                    System.out.println("6. Change method of getting truths and dares.");
+                    System.out.println("7. Exit settings.");
+                    System.out.print("Select an option: ");
+                    int settingChoice = input.nextInt();
+                    switch (settingChoice) {
+                        case 1:
+                            System.out.print("How many players are there?: ");
+                            players = input.nextInt();
+                            playerStats = new PlayerStats[players];
+                            for (int i = 0; i < players; i++) {
+                                playerStats[i] = new PlayerStats();
+                            }
+                            break;
+                        case 2:
+                            System.out.print("How many skips should each player have?: ");
+                            skips = input.nextInt();
+                            break;
+                        case 3:
+                            if (yesNoPrompt("Are you sure you want to reset the used truths?")) {
+                                usedTruths = new String[1];
+                            }
+                            break;
+                        case 4:
+                            if (yesNoPrompt("Are you sure you want to reset the used dares?")) {
+                                usedDares = new String[1];
+                            }
+                            break;
+                        case 5:
+                            System.out.print("What rating would you like to set the truths and dares to PG (1), PG-13 (2), or R (3): ");
+                            switch (input.nextInt()) {
+                                case 1:
+                                    rating = "pg";
+                                    break;
+                                case 2:
+                                    rating = "pg13";
+                                    break;
+                                case 3:
+                                    rating = "r";
+                                    break;
+                                default:
+                                    System.out.println("Invalid rating.");
+                                    break;
+                            }
+                            System.out.println("Rating set to " + rating);
+                            break;
+                        case 6:
+                            System.out.print("Would you like to Use local files (1) or Use an API (2) to get truths and dares?");
+                            switch (input.nextInt()) {
+                                case 1:
+                                    System.out.println("Using local files.");
+                                    getQuestions = "local";
+                                    break;
+                                case 2:
+                                    System.out.println("Using an API.");
+                                    getQuestions = "api";
+                                    break;
+                                default:
+                                    System.out.println("Invalid option.");
+                                    break;
+                            }
+                            break;
+                        case 7:
+                            break;
+                    }
                 }
                 else {
                     if (yesNoPrompt("Are you sure you want to exit?")) {
