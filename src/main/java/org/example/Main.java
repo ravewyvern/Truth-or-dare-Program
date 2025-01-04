@@ -6,22 +6,31 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
-/*
-TO DO LIST:
-- Make an option to have it pull from an api
- */
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import org.json.JSONObject;
 
 public class Main {
 
     public static boolean continueProgram = true;
     public static final boolean debugMode = false; //set to true to enable debug mode for testing
+    public static final int maxRunTimes = 1000;
 
     public static void main(String[] args) {
+        //default settings
+
+        //Values: pg, pg13, r
+        String rating = "pg13";
+
+        //Values: local, api, random
+        String getQuestions = "random";
+
         Scanner input = new Scanner(System.in);
         String[] usedTruths = new String[1];
         String[] usedDares = new String[1];
+        int totalLocalTruthes = 0, totalLocalDares = 0;
         int totalTruths = 0, totalDares = 0;
-        String rating = "pg13", getQuestions = "local";
 
         System.out.println("Welcome to Truth or Dare!");
         System.out.print("To get started How many players are there?: ");
@@ -44,21 +53,19 @@ public class Main {
                 int choice = input.nextInt();
 
                 if (choice == 1) {
-                    if (getCSVLength("src/main/java/org/example/truths.csv") <= totalTruths) {
-                        System.out.println("You have used all the truths.");
+                    if (getCSVLength("src/main/java/org/example/truths.csv") <= totalLocalTruthes) {
+                        System.out.println("You have used all the local truths.");
                         if (yesNoPrompt("Would you like to reset the truths")) {
                             usedTruths = new String[1];
                         }
                         continue;
                     }
-                    String randomTruth = getRandomEntry("src/main/java/org/example/truths.csv");
+                    String randomTruth = getTruthOrDare(rating, "truth", getQuestions, usedTruths);
+                    if (getQuestions.equals("local")) totalLocalTruthes++;
 
                     usedTruths = resizeArray(usedTruths, 1);
                     usedTruths[usedTruths.length - 2] = "placeholder";
 
-                    while (arrayItemChecker(usedTruths, randomTruth)) {
-                        randomTruth = getRandomEntry("src/main/java/org/example/truths.csv");
-                    }
                     boolean continueLoopforTruth = true;
 
                     while (continueLoopforTruth) {
@@ -91,21 +98,19 @@ public class Main {
                     if (debugMode) printArray(usedTruths);
                 }
                 else if (choice == 2) {
-                    if (getCSVLength("src/main/java/org/example/dares.csv") <= totalDares) {
-                        System.out.println("You have used all the dares.");
+                    if (getCSVLength("src/main/java/org/example/dares.csv") <= totalLocalDares) {
+                        System.out.println("You have used all the local dares.");
                         if (yesNoPrompt("Would you like to reset the dares")) {
                             usedDares = new String[1];
                         }
                         continue;
                     }
-                    String randomDare = getRandomEntry("src/main/java/org/example/dares.csv");
+                    String randomDare = getTruthOrDare(rating, "dare", getQuestions, usedDares);
+                    if (getQuestions.equals("local")) totalLocalDares++;
 
                     usedDares = resizeArray(usedDares, 1);
                     usedDares[usedDares.length - 2] = "placeholder";
 
-                    while (arrayItemChecker(usedDares, randomDare)) {
-                        randomDare = getRandomEntry("src/main/java/org/example/dares.csv");
-                    }
                     boolean continueLoopforDare = true;
 
                     while (continueLoopforDare) {
@@ -206,7 +211,7 @@ public class Main {
                             System.out.println("Rating set to " + rating);
                             break;
                         case 6:
-                            System.out.print("Would you like to Use local files (1) or Use an API (2) to get truths and dares?");
+                            System.out.print("Would you like to Use local (1), API (2), or random (3) to get truths and dares?");
                             switch (input.nextInt()) {
                                 case 1:
                                     System.out.println("Using local files.");
@@ -215,6 +220,10 @@ public class Main {
                                 case 2:
                                     System.out.println("Using an API.");
                                     getQuestions = "api";
+                                    break;
+                                case 3:
+                                    System.out.println("Using random.");
+                                    getQuestions = "random";
                                     break;
                                 default:
                                     System.out.println("Invalid option.");
@@ -328,5 +337,53 @@ public class Main {
             return true;
         }
         return false;
+    }
+
+    public static String getTruthOrDareFromAPI(String rating, String type) {
+        String apiUrl = "https://api.truthordarebot.xyz/api/" + type + "?rating=" + rating;
+        StringBuilder response = new StringBuilder();
+
+        try {
+            URL url = new URL(apiUrl);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+
+            // Read the response
+            BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String inputLine;
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
+            }
+            in.close();
+
+            // Parse the response as JSON
+            JSONObject jsonResponse = new JSONObject(response.toString());
+            return jsonResponse.getString("question");  // Return only the "question" field
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();
+        }
+    }
+
+    public static String getTruthOrDare(String rating, String type, String source, String[] usedQuestions) {
+        if (source.equals("random")) {
+            Random rand = new Random();
+            String[] sourceOptions = {"local", "api"};
+            source = sourceOptions[rand.nextInt(sourceOptions.length)];
+            if (debugMode) System.out.println("Random source: " + source);
+        }
+        String selectedQuestion;
+        int timesRun = 0;
+        do {
+            if (source.equals("local")) {
+                selectedQuestion = getRandomEntry("src/main/java/org/example/" + type + "s.csv");
+            } else {
+                selectedQuestion = getTruthOrDareFromAPI(rating, type);
+            }
+            timesRun++;
+            if (timesRun > maxRunTimes) return "Error: Had to stop process";
+        } while (arrayItemChecker(usedQuestions, selectedQuestion));
+        return selectedQuestion;
     }
 }
